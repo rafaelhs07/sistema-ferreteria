@@ -40,6 +40,8 @@ Se comprobaron activos los trabajos pg_cron de obligaciones diarias y liberació
 
 ## Comandos reproducibles
 
+Además de Windows, [GitHub Actions en Ubuntu](https://github.com/rafaelhs07/sistema-ferreteria/actions/runs/37157121867) completó instalación limpia, tipos, lint, cuatro pruebas unitarias, aceptación PostgreSQL, compilación y prueba integral de Chrome con resultado satisfactorio para el commit `26a39c3`.
+
 ```bat
 npm run typecheck
 npm run lint

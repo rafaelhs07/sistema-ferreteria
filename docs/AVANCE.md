@@ -37,7 +37,7 @@ Estado: implementación y revisión de entrega completadas el 3 de octubre de 20
 3. Seleccionar proveedor/dominio, desplegar con HTTPS y configurar URLs de Auth y SMTP.
 4. Realizar un simulacro de restauración en un proyecto aislado y validar impresoras y dispositivos reales.
 
-Código, documentación, migraciones y flujo de CI están preparados para GitHub. No se conservaron datos de pruebas en Supabase.
+Código, documentación y migraciones publicados en `main` de [GitHub](https://github.com/rafaelhs07/sistema-ferreteria). La [primera ejecución de CI](https://github.com/rafaelhs07/sistema-ferreteria/actions/runs/37157121867) terminó correctamente en Ubuntu con el código del commit `26a39c3`: instalación, tipos, lint, unitarias, SQL, build y Chrome. No se conservaron datos de pruebas en Supabase.
 
 ## Limitaciones conocidas al momento
 
