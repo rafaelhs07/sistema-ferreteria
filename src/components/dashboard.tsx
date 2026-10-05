@@ -35,6 +35,23 @@ export function Dashboard({
   const [user, setUser] = useState('');
   const permitted = ctx.permissions.includes('report.read');
   const money = (n: unknown) => formatMoney(str(n) || 0, ctx.business?.currency);
+  const setQuickRange = (preset: 'today' | 'month' | 'prevMonth') => {
+    if (preset === 'today') {
+      setFrom(today);
+      setTo(today);
+    } else if (preset === 'month') {
+      setFrom(today.slice(0, 8) + '01');
+      setTo(today);
+    } else if (preset === 'prevMonth') {
+      const d = new Date(today);
+      d.setMonth(d.getMonth() - 1);
+      const prevYear = d.getFullYear();
+      const prevMonth = String(d.getMonth() + 1).padStart(2, '0');
+      const lastDay = new Date(prevYear, d.getMonth() + 1, 0).getDate();
+      setFrom(`${prevYear}-${prevMonth}-01`);
+      setTo(`${prevYear}-${prevMonth}-${String(lastDay).padStart(2, '0')}`);
+    }
+  };
   useEffect(() => {
     if (!permitted) return;
     const c = new AbortController();
@@ -80,6 +97,52 @@ export function Dashboard({
           </button>
         )}
       </div>
+      <div
+        className="quick-actions-bar"
+        style={{
+          display: 'flex',
+          gap: '8px',
+          flexWrap: 'wrap',
+          marginBottom: '16px',
+        }}
+      >
+        {ctx.permissions.includes('sale.create') && (
+          <button
+            type="button"
+            className="button secondary compact"
+            onClick={() => onNavigate('sell')}
+          >
+            <ShoppingCart size={15} /> Punto de venta
+          </button>
+        )}
+        {ctx.permissions.includes('products.read') && (
+          <button
+            type="button"
+            className="button secondary compact"
+            onClick={() => onNavigate('products')}
+          >
+            <Package size={15} /> Productos
+          </button>
+        )}
+        {ctx.permissions.includes('money.read') && (
+          <button
+            type="button"
+            className="button secondary compact"
+            onClick={() => onNavigate('cash')}
+          >
+            <Wallet size={15} /> Caja y bancos
+          </button>
+        )}
+        {(ctx.permissions.includes('purchase.receive') || ctx.permissions.includes('purchase.write')) && (
+          <button
+            type="button"
+            className="button secondary compact"
+            onClick={() => onNavigate('purchases')}
+          >
+            <Truck size={15} /> Compras
+          </button>
+        )}
+      </div>
       {!permitted ? (
         <section className="panel welcome-panel">
           <div>
@@ -97,6 +160,24 @@ export function Dashboard({
               <CalendarDays size={17} />
               Período
             </span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                type="button"
+                className={`button compact ${from === today && to === today ? 'primary' : 'secondary'}`}
+                style={{ minHeight: '34px', padding: '4px 10px', fontSize: '12px' }}
+                onClick={() => setQuickRange('today')}
+              >
+                Hoy
+              </button>
+              <button
+                type="button"
+                className={`button compact ${from === today.slice(0, 8) + '01' && to === today ? 'primary' : 'secondary'}`}
+                style={{ minHeight: '34px', padding: '4px 10px', fontSize: '12px' }}
+                onClick={() => setQuickRange('month')}
+              >
+                Este mes
+              </button>
+            </div>
             <label>
               Desde
               <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />

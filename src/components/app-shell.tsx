@@ -20,6 +20,7 @@ import {
   Shield,
   Menu,
   WifiOff,
+  PanelLeft,
 } from 'lucide-react';
 import type { Context, Row } from '@/lib/types';
 import { WorkspaceContext } from './ui';
@@ -131,6 +132,7 @@ const navigation = [
 export function AppShell({ context, settings }: { context: Context; settings: Row }) {
   const [tab, setTab] = useState('home');
   const [more, setMore] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [offline, setOffline] = useState(false);
   const [branch, setBranch] = useState(String(context.branches[0]?.id || ''));
   const [logoutError, setLogoutError] = useState('');
@@ -211,12 +213,14 @@ export function AppShell({ context, settings }: { context: Context; settings: Ro
         Ir al contenido
       </a>
       <div className="app-layout">
-        <aside className={`sidebar ${more ? 'open' : ''}`}>
+        <aside className={`sidebar ${more ? 'open' : ''} ${collapsed ? 'collapsed' : ''}`}>
           <button className="brand" onClick={() => go('home')} aria-label="Ferro, inicio">
             <span className="brand-icon">
               <Hammer size={23} />
             </span>
-            ferro<span className="brand-dot">.</span>
+            <span>
+              ferro<span className="brand-dot">.</span>
+            </span>
           </button>
           <div className="business-tag">
             <span className="avatar">{context.business?.name.slice(0, 1) || 'F'}</span>
@@ -232,6 +236,7 @@ export function AppShell({ context, settings }: { context: Context; settings: Ro
                 <button
                   className={tab === n.key ? 'nav-item active' : 'nav-item'}
                   onClick={() => go(n.key)}
+                  title={n.label}
                 >
                   <n.icon size={19} />
                   <span>{n.label}</span>
@@ -240,14 +245,19 @@ export function AppShell({ context, settings }: { context: Context; settings: Ro
               </div>
             ))}
             {context.superadmin && (
-              <button className="nav-item" onClick={() => go('platform')}>
+              <button
+                className={tab === 'platform' ? 'nav-item active' : 'nav-item'}
+                onClick={() => go('platform')}
+                title="Plataforma"
+              >
                 <Shield size={19} />
-                Plataforma
+                <span>Plataforma</span>
+                {tab === 'platform' && <span className="nav-mark" />}
               </button>
             )}
           </nav>
           <div className="sidebar-bottom">
-            <span className="online-dot" /> Tu operación, en orden
+            <span className="online-dot" /> <span className="sidebar-caption">Tu operación, en orden</span>
           </div>
         </aside>
         {more && (
@@ -257,7 +267,7 @@ export function AppShell({ context, settings }: { context: Context; settings: Ro
             onClick={() => setMore(false)}
           />
         )}
-        <div className="workspace">
+        <div className={`workspace ${collapsed ? 'expanded-workspace' : ''}`}>
           <header className="topbar">
             <div className="breadcrumb">
               <button
@@ -267,7 +277,15 @@ export function AppShell({ context, settings }: { context: Context; settings: Ro
               >
                 <Menu />
               </button>
-              <span className="muted">Mi negocio</span>
+              <button
+                className="sidebar-toggle-btn"
+                aria-label={collapsed ? 'Expandir menú lateral' : 'Contraer menú lateral'}
+                title={collapsed ? 'Expandir menú lateral' : 'Contraer menú lateral'}
+                onClick={() => setCollapsed(!collapsed)}
+              >
+                <PanelLeft size={18} />
+              </button>
+              <span className="muted">{tab === 'platform' ? 'Plataforma' : (context.business?.name || 'Mi negocio')}</span>
               <span>/</span>
               <strong>{title}</strong>
             </div>
@@ -323,12 +341,12 @@ export function AppShell({ context, settings }: { context: Context; settings: Ro
               )}
               <div
                 className="user-badge"
-                title={`${context.user.email} · ${context.business?.role}`}
+                title={`${context.user.email} · ${context.business?.role || (context.superadmin ? 'SUPER_ADMIN' : 'USUARIO')}`}
               >
                 <span className="avatar user">{context.user.email.slice(0, 1).toUpperCase()}</span>
                 <div>
                   <strong>{context.user.email.split('@')[0]}</strong>
-                  <small>{context.business?.role}</small>
+                  <span className="user-role-chip">{context.business?.role || (context.superadmin ? 'SUPER_ADMIN' : 'USUARIO')}</span>
                 </div>
               </div>
               <button
@@ -352,6 +370,15 @@ export function AppShell({ context, settings }: { context: Context; settings: Ro
               </button>
             </div>
           </header>
+          {tab === 'platform' && (
+            <div className="platform-banner" role="region" aria-label="Modo superadmin">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={16} />
+                <span>Panel SUPER_ADMIN · Control global de la plataforma, licencias y suscripciones</span>
+              </div>
+              <span className="platform-badge">SUPER_ADMIN</span>
+            </div>
+          )}
           {offline && (
             <div className="connection-banner" role="status">
               <WifiOff size={18} />

@@ -11,6 +11,7 @@ import {
   Package,
 } from 'lucide-react';
 import Decimal from 'decimal.js';
+import Image from 'next/image';
 import { api, command } from '@/lib/api';
 import { formatMoney, lineTotal } from '@/lib/money';
 import type { Row } from '@/lib/types';
@@ -122,6 +123,7 @@ export function PointOfSale({
   const [preview, setPreview] = useState<Preview | null>(null);
   const [pricePending, setPricePending] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'catalog' | 'cart'>('catalog');
   const request = useRef({ id: crypto.randomUUID(), body: '' });
   const searchRef = useRef<HTMLDivElement>(null);
   const checkoutRef = useRef<HTMLDivElement>(null);
@@ -413,8 +415,26 @@ export function PointOfSale({
         </button>
       </ModuleHeading>
       {error && <Notice error>{error}</Notice>}
+      <div className="pos-mobile-tabs">
+        <button
+          type="button"
+          className={`button ${mobileTab === 'catalog' ? 'primary' : 'secondary'}`}
+          style={{ flex: 1, minHeight: '44px' }}
+          onClick={() => setMobileTab('catalog')}
+        >
+          <Package size={17} /> Catálogo ({result.count})
+        </button>
+        <button
+          type="button"
+          className={`button ${mobileTab === 'cart' ? 'primary' : 'secondary'}`}
+          style={{ flex: 1, minHeight: '44px' }}
+          onClick={() => setMobileTab('cart')}
+        >
+          <ShoppingCart size={17} /> Carrito ({cart.length})
+        </button>
+      </div>
       <div className="pos-layout">
-        <section className="panel pos-catalog">
+        <section className={`panel pos-catalog ${mobileTab === 'cart' ? 'mobile-hidden' : ''}`}>
           <div
             className="list-toolbar"
             ref={searchRef}
@@ -476,7 +496,7 @@ export function PointOfSale({
           </ListState>
           <Pagination page={page} count={result.count} onChange={setPage} />
         </section>
-        <section className="panel pos-cart" id="sale-cart">
+        <section className={`panel pos-cart ${mobileTab === 'catalog' ? 'mobile-hidden' : ''}`} id="sale-cart">
           <div className="panel-heading">
             <h2>
               <ShoppingCart size={20} /> {kind === 'sale' ? 'Venta actual' : 'Detalle'}
@@ -523,17 +543,31 @@ export function PointOfSale({
                         {l.factor === 1 ? 'unidad base' : 'unidades base'}
                       </small>
                     </div>
-                    <button
-                      className="icon-button"
-                      aria-label={`Quitar ${l.name}`}
-                      disabled={readOnly}
-                      onClick={() => {
-                        setCart(cart.filter((x) => x.key !== l.key));
-                        setPreview(null);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--accent)' }}>
+                        {money(
+                          l.quantity > 0 && l.discount <= l.quantity * l.price
+                            ? lineTotal(
+                                l.quantity,
+                                l.override ? l.price : (currentPreview?.lines[i]?.price ?? l.price),
+                                l.discount,
+                                l.tax_rate,
+                              )
+                            : 0,
+                        )}
+                      </span>
+                      <button
+                        className="icon-button"
+                        aria-label={`Quitar ${l.name}`}
+                        disabled={readOnly}
+                        onClick={() => {
+                          setCart(cart.filter((x) => x.key !== l.key));
+                          setPreview(null);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                   <div className="cart-line-controls">
                     <label>
@@ -602,6 +636,42 @@ export function PointOfSale({
             </div>
           )}
           <div className="checkout" ref={checkoutRef}>
+            {cart.length > 0 && currentPreview && (
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '4px',
+                  marginBottom: '10px',
+                  fontSize: '12px',
+                  color: 'var(--muted)',
+                }}
+              >
+                {currentPreview.subtotal !== undefined && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Subtotal</span>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
+                      {money(currentPreview.subtotal)}
+                    </span>
+                  </div>
+                )}
+                {currentPreview.tax !== undefined && Number(currentPreview.tax) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Impuestos estimados</span>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
+                      {money(currentPreview.tax)}
+                    </span>
+                  </div>
+                )}
+                {Number(transport) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Transporte / flete</span>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
+                      {money(transport)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="checkout-total">
               <span>Total{pricePending && <small> Validando…</small>}</span>
               <strong>{money(total)}</strong>
@@ -715,6 +785,25 @@ export function PointOfSale({
                   <Plus size={15} />
                   Combinar otro medio
                 </button>
+                {payments.length === 1 &&
+                  Number(payments[0]?.amount || 0) < total &&
+                  total > 0 && (
+                    <button
+                      type="button"
+                      className="text-button"
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: '11px',
+                        marginBottom: '6px',
+                        minHeight: '32px',
+                      }}
+                      onClick={() => {
+                        setPayments([{ ...payments[0], amount: String(total) }]);
+                      }}
+                    >
+                      Pagar monto exacto ({money(total)})
+                    </button>
+                  )}
                 <dl className="payment-summary">
                   <div>
                     <dt>{credit ? 'Saldo a crédito' : 'Falta por cobrar'}</dt>
@@ -833,17 +922,28 @@ export function PointOfSale({
       <div className="pos-mobile-summary">
         <button
           onClick={() => {
-            searchRef.current?.scrollIntoView();
+            setMobileTab('catalog');
+            searchRef.current?.scrollIntoView({ behavior: 'smooth' });
             searchRef.current?.querySelector('input')?.focus();
           }}
         >
-          Buscar
+          Buscar [F2]
         </button>
-        <button onClick={() => document.getElementById('sale-cart')?.scrollIntoView()}>
+        <button
+          onClick={() => {
+            setMobileTab('cart');
+            document.getElementById('sale-cart')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        >
           {cart.length} productos
         </button>
-        <button onClick={() => checkoutRef.current?.scrollIntoView()}>
-          <small>Total</small>
+        <button
+          onClick={() => {
+            setMobileTab('cart');
+            checkoutRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        >
+          <small>Total [F4]</small>
           <strong>{money(total)}</strong>
         </button>
       </div>
@@ -879,16 +979,27 @@ function ProductTile({
     str(presentations.find((p) => Number(p.factor) === 1)?.id || presentations[0]?.id),
   );
   const pr = presentations.find((p) => p.id === id) || presentations[0];
+  const inStock = Number(row.available) > 0;
   return (
     <article className="product-tile">
       <span className="product-initial large">
-        <Package size={28} />
+        {row.photo_path ? (
+          <Image
+            unoptimized
+            src={`/api/files?path=${encodeURIComponent(str(row.photo_path))}`}
+            width={52}
+            height={52}
+            alt=""
+          />
+        ) : (
+          <Package size={26} />
+        )}
       </span>
       <small>
         {str(row.code)} · {str(row.brand) || str(row.category) || 'Producto'}
       </small>
       <h3>{str(row.name)}</h3>
-      <span className={Number(row.available) > 0 ? 'stock-ok' : 'stock-low'}>
+      <span className={inStock ? 'stock-ok' : 'stock-low'}>
         {str(row.available)} {str(row.unit)} disponibles
       </span>
       {presentations.length > 1 && (
